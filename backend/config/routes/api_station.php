@@ -105,9 +105,6 @@ return static function (RouteCollectorProxy $group) {
                             $group->post('/clear', Controller\Api\Stations\QueueController::class . ':clearAction')
                                 ->setName('api:stations:queue:clear');
 
-                            $group->post('/media/{media_id}', Controller\Api\Stations\QueueMediaAction::class)
-                                ->setName('api:stations:queue:media');
-
                             $group->delete('/{id}', Controller\Api\Stations\QueueController::class . ':deleteAction')
                                 ->setName('api:stations:queue:record');
                         }
@@ -770,10 +767,6 @@ return static function (RouteCollectorProxy $group) {
 
                     $group->post('/backend/{do}', Controller\Api\Stations\ServicesController::class . ':backendAction')
                         ->setName('api:stations:backend')
-                        ->add(new Middleware\Permissions(StationPermissions::Broadcasting, true));
-
-                    $group->post('/backend/play-media', Controller\Api\Stations\PlayMediaController::class)
-                        ->setName('api:stations:backend:play-media')
                         ->add(new Middleware\Permissions(StationPermissions::Broadcasting, true));
 
                     $group->post(

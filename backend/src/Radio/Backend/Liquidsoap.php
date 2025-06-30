@@ -17,13 +17,11 @@ use App\Radio\Enums\LiquidsoapQueues;
 use LogicException;
 use Psr\Http\Message\UriInterface;
 use Symfony\Component\Process\Process;
-use App\Container\ContainerAwareTrait;
 
 final class Liquidsoap extends AbstractLocalAdapter
 {
     public const string GLOBAL_CACHE_PATH = '/tmp/liquidsoap_cache';
     public const string USER_CACHE_DIR = '/liquidsoap_cache';
-    use ContainerAwareTrait;
 
     /**
      * @inheritDoc
@@ -184,70 +182,6 @@ final class Liquidsoap extends AbstractLocalAdapter
         );
         return empty($queueResult[0]);
     }
-
-    // Add these methods to the Liquidsoap class:
-
-/**
- * Play a media file immediately or queue it.
- *
- * @param Station $station
- * @param string $mediaId
- * @param bool $immediate
- * @return array
- */
-public function playMedia(Station $station, string $mediaId, bool $immediate = false): array
-{
-    $command = LiquidsoapCommands::PlayMedia;
-    if (!$this->di->has($command->getClass())) {
-        throw new \RuntimeException('PlayMedia command not available.');
-    }
-
-    /** @var Command\PlayMediaCommand $commandObj */
-    $commandObj = $this->di->get($command->getClass());
-
-    return $commandObj->run($station, true, [
-        'media_id' => $mediaId,
-        'immediate' => $immediate
-    ]);
-}
-
-/**
- * Queue multiple media files.
- *
- * @param Station $station
- * @param array $mediaIds
- * @param string $position 'next' or 'end'
- * @return array
- */
-public function queueMedia(Station $station, array $mediaIds, string $position = 'next'): array
-{
-    $command = LiquidsoapCommands::QueueMedia;
-    if (!$this->di->has($command->getClass())) {
-        throw new \RuntimeException('QueueMedia command not available.');
-    }
-
-    /** @var Command\QueueMediaCommand $commandObj */
-    $commandObj = $this->di->get($command->getClass());
-
-    return $commandObj->run($station, true, [
-        'media_ids' => $mediaIds,
-        'position' => $position
-    ]);
-}
-
-/**
- * Clear the request queue.
- *
- * @param Station $station
- * @return array
- */
-public function clearQueue(Station $station): array
-{
-    return $this->command(
-        $station,
-        'request.queue.clear()'
-    );
-}
 
     /**
      * @return string[]
