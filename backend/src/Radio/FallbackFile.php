@@ -29,6 +29,6 @@ final class FallbackFile
     {
         return $this->environment->isDocker()
             ? '/usr/local/share/icecast/web/error.mp3'
-            : $this->environment->getBaseDirectory() . '/resources/error.mp3';
+            : $this->environment->getBaseDirectory() . '/resources/sample.mp3';
     }
 }

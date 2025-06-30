@@ -166,7 +166,7 @@ abstract class CestAbstract
     {
         $testStation = $this->getTestStation();
 
-        $songSrc = '/var/azuracast/www/resources/error.mp3';
+        $songSrc = '/var/azuracast/www/resources/sample.mp3';
 
         $storageLocation = $testStation->getMediaStorageLocation();
 
