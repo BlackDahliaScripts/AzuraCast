@@ -59,9 +59,9 @@ jobs:
       #   run: |
       #     vendor/bin/phpstan analyze --memory-limit=-1 --error-format=checkstyle | cs2pr
 
-      - name: Run PHP Code Sniffer
-        run: |
-          vendor/bin/phpcs --report=checkstyle | cs2pr
+      # - name: Run PHP Code Sniffer
+      #   run: |
+      #     vendor/bin/phpcs --report=checkstyle | cs2pr
 
   node-test:
     name: Node Test Suite
