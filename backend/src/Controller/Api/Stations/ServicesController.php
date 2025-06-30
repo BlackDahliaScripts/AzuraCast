@@ -106,6 +106,9 @@ use Psr\Http\Message\ResponseInterface;
                         'stop',
                         'reload',
                         'restart',
+                        'play-media',
+                        'queue-media',
+                        'clear-queue',
                     ]
                 )
             ),
@@ -225,55 +228,96 @@ final class ServicesController
         }
     }
 
-    public function backendAction(
-        ServerRequest $request,
-        Response $response,
-        array $params
-    ): ResponseInterface {
-        /** @var string $do */
-        $do = $params['do'] ?? 'restart';
+public function backendAction(
+    ServerRequest $request,
+    Response $response,
+    array $params
+): ResponseInterface {
+    /** @var string $do */
+    $do = $params['do'] ?? 'restart';
 
-        $station = $request->getStation();
-        $backend = $this->adapters->requireBackendAdapter($station);
+    $station = $request->getStation();
+    $backend = $this->adapters->requireBackendAdapter($station);
 
-        switch ($do) {
-            case 'skip':
-                $backend->skip($station);
+    switch ($do) {
+        case 'skip':
+            $backend->skip($station);
+            return $response->withJson(new Status(true, __('Song skipped.')));
 
-                return $response->withJson(new Status(true, __('Song skipped.')));
+        case 'disconnect':
+            $backend->disconnectStreamer($station);
+            return $response->withJson(new Status(true, __('Streamer disconnected.')));
 
-            case 'disconnect':
-                $backend->disconnectStreamer($station);
+        case 'play-media':
+            $result = $this->executeLiquidsoapCommand(
+                $station,
+                'playmedia',
+                $request->getParsedBody()
+            );
+            return $response->withJson($result);
 
-                return $response->withJson(new Status(true, __('Streamer disconnected.')));
+        case 'queue-media':
+            $result = $this->executeLiquidsoapCommand(
+                $station,
+                'queuemedia',
+                $request->getParsedBody()
+            );
+            return $response->withJson($result);
 
-            case 'stop':
+        case 'clear-queue':
+            $result = $this->executeLiquidsoapCommand(
+                $station,
+                'clearqueue',
+                []
+            );
+            return $response->withJson($result);
+
+        case 'stop':
+            $backend->stop($station);
+            return $response->withJson(new Status(true, __('Service stopped.')));
+
+        case 'start':
+            $backend->start($station);
+            return $response->withJson(new Status(true, __('Service started.')));
+
+        case 'reload':
+            $backend->write($station);
+            $backend->reload($station);
+            return $response->withJson(new Status(true, __('Service reloaded.')));
+
+        case 'restart':
+        default:
+            try {
                 $backend->stop($station);
+            } catch (NotRunningException) {
+            }
 
-                return $response->withJson(new Status(true, __('Service stopped.')));
-
-            case 'start':
-                $backend->start($station);
-
-                return $response->withJson(new Status(true, __('Service started.')));
-
-            case 'reload':
-                $backend->write($station);
-                $backend->reload($station);
-
-                return $response->withJson(new Status(true, __('Service reloaded.')));
-
-            case 'restart':
-            default:
-                try {
-                    $backend->stop($station);
-                } catch (NotRunningException) {
-                }
-
-                $backend->write($station);
-                $backend->start($station);
-
-                return $response->withJson(new Status(true, __('Service restarted.')));
-        }
+            $backend->write($station);
+            $backend->start($station);
+            return $response->withJson(new Status(true, __('Service restarted.')));
     }
+}
+
+private function executeLiquidsoapCommand(
+    Station $station,
+    string $command,
+    array $payload
+): array {
+    $internalUrl = '/api/internal/' . $station->getId() . '/liquidsoap/' . $command;
+    
+    // Make internal request using the station's API key
+    $client = new \GuzzleHttp\Client([
+        'base_uri' => 'http://localhost',
+        'timeout' => 10.0,
+    ]);
+    
+    $response = $client->post($internalUrl, [
+        'headers' => [
+            'X-Liquidsoap-Api-Key' => $station->getAdapterApiKey(),
+        ],
+        'json' => $payload,
+    ]);
+    
+    return json_decode($response->getBody()->getContents(), true);
+}
 }
