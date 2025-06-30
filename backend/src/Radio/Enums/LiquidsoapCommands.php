@@ -16,11 +16,12 @@ enum LiquidsoapCommands: string
     case NextSong = 'nextsong';
     case PlayMedia = 'playmedia';
     case QueueMedia = 'queuemedia';
-    case InsertMedia = 'insertmedia';
     case ClearQueue = 'clearqueue';
     case SkipSong = 'skip';
 
-    /** @return class-string<Command\AbstractCommand> */
+    /** 
+     * @return class-string<Command\AbstractCommand> 
+     */
     public function getClass(): string
     {
         return match ($this) {
@@ -32,7 +33,6 @@ enum LiquidsoapCommands: string
             self::NextSong => Command\NextSongCommand::class,
             self::PlayMedia => Command\PlayMediaCommand::class,
             self::QueueMedia => Command\QueueMediaCommand::class,
-            self::InsertMedia => Command\InsertMediaCommand::class,
             self::ClearQueue => Command\ClearQueueCommand::class,
             self::SkipSong => Command\SkipSongCommand::class,
         };
