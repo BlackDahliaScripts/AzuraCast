@@ -14,8 +14,9 @@ use App\Http\ServerRequest;
 use App\Nginx\Nginx;
 use App\OpenApi;
 use App\Radio\Adapters;
+use App\Radio\Backend\Liquidsoap;
 use App\Radio\Configuration;
-use GuzzleHttp\Client;
+use App\Radio\Enums\BackendAdapters;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface;
 
@@ -114,6 +115,38 @@ use Psr\Http\Message\ResponseInterface;
                 )
             ),
         ],
+        requestBody: new OA\RequestBody(
+            description: 'Optional request body for media control actions.',
+            required: false,
+            content: new OA\JsonContent(
+                type: 'object',
+                properties: [
+                    new OA\Property(
+                        property: 'media_id',
+                        description: 'The media ID to play (for play-media action).',
+                        type: 'string'
+                    ),
+                    new OA\Property(
+                        property: 'immediate',
+                        description: 'Whether to play immediately (for play-media action).',
+                        type: 'boolean',
+                        default: false
+                    ),
+                    new OA\Property(
+                        property: 'media_ids',
+                        description: 'Array of media IDs to queue (for queue-media action).',
+                        type: 'array',
+                        items: new OA\Items(type: 'string')
+                    ),
+                    new OA\Property(
+                        property: 'position',
+                        description: 'Position to queue at: "next" or "end" (for queue-media action).',
+                        type: 'string',
+                        default: 'next'
+                    ),
+                ]
+            )
+        ),
         responses: [
             new OpenApi\Response\Success(),
             new OpenApi\Response\AccessDenied(),
@@ -238,6 +271,16 @@ final class ServicesController
         $do = $params['do'] ?? 'restart';
 
         $station = $request->getStation();
+
+        // Ensure we have Liquidsoap backend for media control actions
+        if (in_array($do, ['play-media', 'queue-media', 'clear-queue'], true)) {
+            if (BackendAdapters::Liquidsoap !== $station->getBackendType()) {
+                return $response->withStatus(400)->withJson(
+                    new Status(false, __('This feature is only available for stations using Liquidsoap.'))
+                );
+            }
+        }
+
         $backend = $this->adapters->requireBackendAdapter($station);
 
         switch ($do) {
@@ -250,30 +293,43 @@ final class ServicesController
                 return $response->withJson(new Status(true, __('Streamer disconnected.')));
 
             case 'play-media':
+                /** @var Liquidsoap $backend */
                 $parsedBody = $request->getParsedBody();
-                $result = $this->executeLiquidsoapCommand(
-                    $station,
-                    'playmedia',
-                    is_array($parsedBody) ? $parsedBody : []
-                );
+                $body = is_array($parsedBody) ? $parsedBody : [];
+
+                $mediaId = $body['media_id'] ?? null;
+                if (!$mediaId) {
+                    return $response->withStatus(400)->withJson(
+                        new Status(false, __('No media_id provided.'))
+                    );
+                }
+
+                $immediate = $body['immediate'] ?? false;
+                $result = $backend->playMedia($station, $mediaId, $immediate);
+
                 return $response->withJson($result);
 
             case 'queue-media':
+                /** @var Liquidsoap $backend */
                 $parsedBody = $request->getParsedBody();
-                $result = $this->executeLiquidsoapCommand(
-                    $station,
-                    'queuemedia',
-                    is_array($parsedBody) ? $parsedBody : []
-                );
+                $body = is_array($parsedBody) ? $parsedBody : [];
+
+                $mediaIds = $body['media_ids'] ?? [];
+                if (empty($mediaIds)) {
+                    return $response->withStatus(400)->withJson(
+                        new Status(false, __('No media_ids provided.'))
+                    );
+                }
+
+                $position = $body['position'] ?? 'next';
+                $result = $backend->queueMedia($station, $mediaIds, $position);
+
                 return $response->withJson($result);
 
             case 'clear-queue':
-                $result = $this->executeLiquidsoapCommand(
-                    $station,
-                    'clearqueue',
-                    []
-                );
-                return $response->withJson($result);
+                /** @var Liquidsoap $backend */
+                $backend->clearQueue($station);
+                return $response->withJson(new Status(true, __('Request queue cleared.')));
 
             case 'stop':
                 $backend->stop($station);
@@ -299,28 +355,5 @@ final class ServicesController
                 $backend->start($station);
                 return $response->withJson(new Status(true, __('Service restarted.')));
         }
-    }
-
-    private function executeLiquidsoapCommand(
-        Station $station,
-        string $command,
-        array $payload
-    ): array {
-        $internalUrl = '/api/internal/' . $station->getId() . '/liquidsoap/' . $command;
-
-        // Make internal request using the station's API key
-        $client = new Client([
-            'base_uri' => 'http://localhost',
-            'timeout' => 10.0,
-        ]);
-
-        $response = $client->post($internalUrl, [
-            'headers' => [
-                'X-Liquidsoap-Api-Key' => $station->getAdapterApiKey(),
-            ],
-            'json' => $payload,
-        ]);
-
-        return json_decode($response->getBody()->getContents(), true);
     }
 }
