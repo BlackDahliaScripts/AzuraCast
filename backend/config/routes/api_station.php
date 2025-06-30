@@ -105,6 +105,9 @@ return static function (RouteCollectorProxy $group) {
                             $group->post('/clear', Controller\Api\Stations\QueueController::class . ':clearAction')
                                 ->setName('api:stations:queue:clear');
 
+                            $group->post('/media/{media_id}', Controller\Api\Stations\QueueMediaAction::class)
+                                ->setName('api:stations:queue:media');
+
                             $group->delete('/{id}', Controller\Api\Stations\QueueController::class . ':deleteAction')
                                 ->setName('api:stations:queue:record');
                         }
