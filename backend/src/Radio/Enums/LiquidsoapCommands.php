@@ -19,8 +19,8 @@ enum LiquidsoapCommands: string
     case ClearQueue = 'clearqueue';
     case SkipSong = 'skip';
 
-    /** 
-     * @return class-string<Command\AbstractCommand> 
+    /**
+     * @return class-string<Command\AbstractCommand>
      */
     public function getClass(): string
     {

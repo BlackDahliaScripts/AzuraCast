@@ -21,7 +21,7 @@ final class ClearQueueCommand extends AbstractCommand
     ): mixed {
         // Clear the request queue
         $response = $this->liquidsoap->command($station, 'request.queue.clear()');
-        
+
         return [
             'success' => true,
             'message' => 'Request queue cleared',

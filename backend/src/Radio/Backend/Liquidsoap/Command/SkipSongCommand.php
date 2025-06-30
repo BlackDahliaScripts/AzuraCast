@@ -21,7 +21,7 @@ final class SkipSongCommand extends AbstractCommand
     ): mixed {
         // Skip the current song
         $response = $this->liquidsoap->command($station, 'source.skip');
-        
+
         return [
             'success' => true,
             'message' => 'Song skipped',
