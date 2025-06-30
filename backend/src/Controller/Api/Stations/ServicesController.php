@@ -307,20 +307,20 @@ final class ServicesController
         array $payload
     ): array {
         $internalUrl = '/api/internal/' . $station->getId() . '/liquidsoap/' . $command;
-        
+
         // Make internal request using the station's API key
         $client = new Client([
             'base_uri' => 'http://localhost',
             'timeout' => 10.0,
         ]);
-        
+
         $response = $client->post($internalUrl, [
             'headers' => [
                 'X-Liquidsoap-Api-Key' => $station->getAdapterApiKey(),
             ],
             'json' => $payload,
         ]);
-        
+
         return json_decode($response->getBody()->getContents(), true);
     }
 }
