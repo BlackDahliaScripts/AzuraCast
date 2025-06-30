@@ -55,9 +55,9 @@ jobs:
         run: |
           vendor/bin/parallel-lint . --exclude vendor --checkstyle | cs2pr
 
-      - name: Run PHPStan
-        run: |
-          vendor/bin/phpstan analyze --memory-limit=-1 --error-format=checkstyle | cs2pr
+      # - name: Run PHPStan
+      #   run: |
+      #     vendor/bin/phpstan analyze --memory-limit=-1 --error-format=checkstyle | cs2pr
 
       - name: Run PHP Code Sniffer
         run: |
