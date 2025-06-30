@@ -14,6 +14,7 @@ use App\Http\ServerRequest;
 use App\OpenApi;
 use App\Radio\AutoDJ\Queue;
 use App\Radio\Backend\Liquidsoap;
+use App\Utilities\Time;
 use App\Utilities\Types;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface;
@@ -82,7 +83,9 @@ final class QueueMediaAction implements SingleActionInterface
         
         // Get request body parameters
         $parsedBody = $request->getParsedBody();
-        $playImmediately = Types::bool($parsedBody['play_immediately'] ?? false);
+        $playImmediately = Types::bool(
+            is_array($parsedBody) ? ($parsedBody['play_immediately'] ?? false) : false
+        );
         
         // Create a new queue entry
         $queueRow = StationQueue::fromMedia($station, $media);
@@ -90,14 +93,14 @@ final class QueueMediaAction implements SingleActionInterface
         if ($playImmediately) {
             // For immediate playback, set it to be sent to AutoDJ immediately
             // and position it at the front of the queue
-            $queueRow->setTimestampCued($station->getTimezoneObject()->now());
+            $queueRow->setTimestampCued(Time::nowUtc());
             $queueRow->setSentToAutodj(false); // Will be picked up immediately by AutoDJ
             
             // Clear any existing unsent queue items to prioritize this one
             $this->queueRepo->clearUpcomingQueue($station);
         } else {
             // For regular queuing, let the AutoDJ queue system handle timing
-            $queueRow->setTimestampCued($station->getTimezoneObject()->now());
+            $queueRow->setTimestampCued(Time::nowUtc());
         }
         
         // Persist the queue entry
@@ -113,27 +116,30 @@ final class QueueMediaAction implements SingleActionInterface
                 // Skip to next song (which will be our queued media)
                 $this->liquidsoap->skip($station);
                 
-                return $response->withJson(Status::updated([
+                return $response->withJson([
+                    'success' => true,
                     'message' => 'Media queued and playing immediately.',
                     'queue_id' => $queueRow->getIdRequired(),
                     'media_id' => $media->getIdRequired(),
-                ]));
+                ]);
             } catch (\Exception $e) {
-                return $response->withJson(Status::error([
+                return $response->withJson([
+                    'success' => false,
                     'message' => 'Media queued but failed to play immediately: ' . $e->getMessage(),
                     'queue_id' => $queueRow->getIdRequired(),
                     'media_id' => $media->getIdRequired(),
-                ]));
+                ]);
             }
         }
         
         // Rebuild the queue to include the new item
         $this->queue->buildQueue($station);
         
-        return $response->withJson(Status::created([
+        return $response->withJson([
+            'success' => true,
             'message' => 'Media queued successfully.',
             'queue_id' => $queueRow->getIdRequired(),
             'media_id' => $media->getIdRequired(),
-        ]));
+        ]);
     }
 }
