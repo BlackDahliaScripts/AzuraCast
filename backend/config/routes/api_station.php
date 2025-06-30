@@ -769,6 +769,10 @@ return static function (RouteCollectorProxy $group) {
                         ->setName('api:stations:backend')
                         ->add(new Middleware\Permissions(StationPermissions::Broadcasting, true));
 
+                    $group->post('/backend/play-media', Controller\Api\Stations\PlayMediaController::class)
+                        ->setName('api:stations:backend:play-media')
+                        ->add(new Middleware\Permissions(StationPermissions::Broadcasting, true));
+
                     $group->post(
                         '/frontend/{do}',
                         Controller\Api\Stations\ServicesController::class . ':frontendAction'

@@ -6,14 +6,16 @@ namespace App\Radio\Backend\Liquidsoap\Command;
 
 use App\Entity\Repository\StationMediaRepository;
 use App\Entity\Station;
+use App\Entity\StationMedia;
 use App\Radio\Backend\Liquidsoap;
-use RuntimeException;
+use App\Radio\Enums\LiquidsoapQueues;
+use InvalidArgumentException;
 
 final class PlayMediaCommand extends AbstractCommand
 {
     public function __construct(
-        private readonly Liquidsoap $liquidsoap,
         private readonly StationMediaRepository $mediaRepo,
+        private readonly Liquidsoap $liquidsoap
     ) {
     }
 
@@ -21,30 +23,44 @@ final class PlayMediaCommand extends AbstractCommand
         Station $station,
         bool $asAutoDj = false,
         array $payload = []
-    ): mixed {
+    ): array {
         $mediaId = $payload['media_id'] ?? null;
-        if (!$mediaId) {
-            throw new RuntimeException('No media_id provided.');
+        $immediate = (bool)($payload['immediate'] ?? false);
+
+        if (null === $mediaId) {
+            throw new InvalidArgumentException('Media ID is required.');
         }
 
+        // Find the media file
         $media = $this->mediaRepo->findByUniqueId($mediaId, $station);
-        if (!$media) {
-            throw new RuntimeException('Media not found.');
+        if (!($media instanceof StationMedia)) {
+            throw new InvalidArgumentException('Media file not found.');
         }
 
-        $mediaPath = 'media:' . $media->getPath();
+        // Get the file path for Liquidsoap
+        $mediaPath = $media->getPath();
         
-        // Queue the file
-        $this->liquidsoap->command($station, sprintf('request.queue.push %s', $mediaPath));
-        
-        // If immediate, skip current song
-        if ($payload['immediate'] ?? false) {
+        // If immediate is true, skip current song first
+        if ($immediate) {
             $this->liquidsoap->skip($station);
         }
 
+        // Add the media to the request queue (highest priority)
+        $result = $this->liquidsoap->enqueue(
+            $station,
+            LiquidsoapQueues::Requests,
+            $mediaPath
+        );
+
         return [
             'success' => true,
-            'message' => ($payload['immediate'] ?? false) ? 'Playing immediately' : 'Queued for playback',
+            'media_id' => $mediaId,
+            'media_path' => $mediaPath,
+            'immediate' => $immediate,
+            'liquidsoap_response' => $result,
+            'message' => $immediate 
+                ? 'Media queued for immediate playback (current song skipped)'
+                : 'Media queued for playback'
         ];
     }
 }
