@@ -8,6 +8,8 @@ use App\Container\EntityManagerAwareTrait;
 use App\Entity\Repository\StationMediaRepository;
 use App\Entity\Station;
 use App\Radio\Backend\Liquidsoap;
+use RuntimeException;
+use InvalidArgumentException;
 
 final class QueueMediaCommand extends AbstractCommand
 {
@@ -19,16 +21,16 @@ final class QueueMediaCommand extends AbstractCommand
     ) {
     }
 
-    public function run(
+    protected function doRun(
         Station $station,
         bool $asAutoDj = false,
         array $payload = []
-    ): array {
+    ): mixed {
         $mediaIds = $payload['media_ids'] ?? [];
         $position = $payload['position'] ?? 'next'; // 'next' or 'end'
         
         if (empty($mediaIds)) {
-            throw new \RuntimeException('No media_ids provided.');
+            throw new RuntimeException('No media_ids provided.');
         }
         
         $queued = [];
@@ -38,7 +40,7 @@ final class QueueMediaCommand extends AbstractCommand
                 $command = match($position) {
                     'next' => sprintf('request.queue.push(request.create("media:%s"))', $media->getPath()),
                     'end' => sprintf('request.queue.append(request.create("media:%s"))', $media->getPath()),
-                    default => throw new \InvalidArgumentException('Invalid position')
+                    default => throw new InvalidArgumentException('Invalid position')
                 };
                 
                 $this->liquidsoap->command($station, $command);

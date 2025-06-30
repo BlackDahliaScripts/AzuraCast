@@ -21,11 +21,11 @@ final class PlayMediaCommand extends AbstractCommand
     ) {
     }
 
-    public function run(
+    protected function doRun(
         Station $station,
         bool $asAutoDj = false,
         array $payload = []
-    ): array {
+    ): mixed {
         $mediaId = $payload['media_id'] ?? null;
         $immediate = $payload['immediate'] ?? false;
         
