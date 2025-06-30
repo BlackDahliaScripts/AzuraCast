@@ -60,7 +60,7 @@
                     <a
                         class="btn btn-primary"
                         role="button"
-                        href="https://chat.soundmesh.dev"
+                        href="https://join.immunity.community"
                         target="_blank"
                     >
                         <icon :icon="IconSupport" />

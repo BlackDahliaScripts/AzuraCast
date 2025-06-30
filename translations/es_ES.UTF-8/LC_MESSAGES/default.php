@@ -882,7 +882,7 @@
       'Port' => 'Puerto',
       'Port:' => 'Puerto:',
       'Powered by' => 'Impulsado por',
-      'Powered by SoundMesh' => 'Desarrollado por AzuraCast',
+      'Powered by AzuraCast' => 'Desarrollado por AzuraCast',
       'Prefer Browser URL (If Available)' => 'Preferir URL del Navegador (si está disponible)',
       'Prefer System Default' => 'Preferir Sistema Predeterminado',
       'Preview' => 'Avance',

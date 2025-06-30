@@ -4045,7 +4045,7 @@ msgid "Powered by"
 msgstr "Υλοποίηση από"
 
 #: frontend/components/Stations/Webhooks/Form/Discord.vue:128
-msgid "Powered by SoundMesh"
+msgid "Powered by AzuraCast"
 msgstr "Τροφοδοτείται από AzuraCast"
 
 #: frontend/components/Admin/Settings/GeneralTab.vue:29
